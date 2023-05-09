@@ -70,14 +70,15 @@ class FileWriter:
         local_srcdir_names = (*(srcdir_names or []), self.core_sources)
         local_objdir_name = objdir_name or self.objdir_name
 
-        build_id = hashlib.shake_128(json.dumps(parsed_config).encode('utf-8')).hexdigest(4)
+        # build_id = hashlib.shake_128(json.dumps(parsed_config).encode('utf-8')).hexdigest(4)
+        build_id = hashlib.sha512(json.dumps(parsed_config).encode('utf-8')).hexdigest()[:4]
 
         inc_dir = os.path.join(os.path.abspath(local_objdir_name), build_id, 'inc')
 
         executable, elements, modules_to_compile, module_info, config_file, env = parsed_config
 
         self.fileparts.append((os.path.join(inc_dir, instantiation_file_name), instantiation_file.get_instantiation_lines(**elements))) # Instantiation file
-        self.fileparts.append((os.path.join(inc_dir, constants_file_name), constants_file.get_constants_file(config_file, elements['pmem']))) # Constants header
+        self.fileparts.append((os.path.join(inc_dir, constants_file_name), constants_file.get_constants_file(config_file, elements['pmem'], elements['smem']))) # Constants header
 
         # Core modules file
         core_declarations, core_definitions = modules.get_ooo_cpu_module_lines(module_info['branch'], module_info['btb'])

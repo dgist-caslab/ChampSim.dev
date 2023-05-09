@@ -24,6 +24,7 @@ from . import util
 default_root = { 'block_size': 64, 'page_size': 4096, 'heartbeat_frequency': 10000000, 'num_cores': 1 }
 default_core = { 'frequency' : 4000 }
 default_pmem = { 'name': 'DRAM', 'frequency': 3200, 'channels': 1, 'ranks': 1, 'banks': 8, 'rows': 65536, 'columns': 128, 'lines_per_column': 8, 'channel_width': 8, 'wq_size': 64, 'rq_size': 64, 'tRP': 12.5, 'tRCD': 12.5, 'tCAS': 12.5, 'turn_around_time': 7.5 }
+default_smem = { 'name': 'SLOW_MEM', 'frequency': 2133, 'channels': 1, 'ranks': 1, 'banks': 8, 'rows': 65536, 'columns': 128, 'lines_per_column': 8, 'channel_width': 8, 'wq_size': 64, 'rq_size': 64, 'tRP': 12.5, 'tRCD': 12.5, 'tCAS': 12.5, 'turn_around_time': 7.5 }
 default_vmem = { 'pte_page_size': (1 << 12), 'num_levels': 5, 'minor_fault_penalty': 200 }
 
 cache_deprecation_keys = {
@@ -61,6 +62,7 @@ def parse_config_in_context(merged_configs, branch_context, btb_context, prefetc
     config_file = util.chain(merged_configs, default_root)
 
     pmem = util.chain(config_file.get('physical_memory', {}), default_pmem)
+    smem = util.chain(config_file.get('slow_memory', {}), default_smem)
     vmem = util.chain(config_file.get('virtual_memory', {}), default_vmem)
 
     # Copy or trim cores as necessary to fill out the specified number of cores
@@ -106,8 +108,8 @@ def parse_config_in_context(merged_configs, branch_context, btb_context, prefetc
     # Convert all core values to labels
     cores = [util.chain({n: util.read_element_name(cpu, n) for n in (*pinned_cache_names, 'PTW')}, cpu) for cpu in cores]
 
-    # The name 'DRAM' is reserved for the physical memory
-    caches = {k:v for k,v in caches.items() if k != 'DRAM'}
+    # The name 'DRAM' and 'SLOW_MEM' is reserved for the physical memory
+    caches = {k:v for k,v in caches.items() if (k != 'DRAM') and (k != 'SLOW_MEM')}
 
     # Frequencies are the maximum of the upper levels, unless specified
     for cpu,name in itertools.product(cores, ('L1I', 'L1D', 'ITLB', 'DTLB')):
@@ -148,7 +150,8 @@ def parse_config_in_context(merged_configs, branch_context, btb_context, prefetc
     caches = filter_inaccessible(caches, [cpu[name] for cpu,name in itertools.product(cores, ('ITLB', 'DTLB', 'L1I', 'L1D'))])
 
     pmem['io_freq'] = pmem['frequency'] # Save value
-    scale_frequencies(itertools.chain(cores, caches.values(), ptws.values(), (pmem,)))
+    smem['io_freq'] = smem['frequency'] # Save value
+    scale_frequencies(itertools.chain(cores, caches.values(), ptws.values(), (pmem,), (smem,)))
 
     # TODO can these be removed in favor of the defaults in inc/defaults.hpp?
     # All cores have a default branch predictor and BTB
@@ -186,7 +189,7 @@ def parse_config_in_context(merged_configs, branch_context, btb_context, prefetc
             ({'name': c['name'], '_btb_data': [btb_context.find(f) for f in util.wrap_list(c.get('btb',[]))]} for c in cores)
             ).values())
 
-    elements = {'cores': cores, 'caches': tuple(caches.values()), 'ptws': tuple(ptws.values()), 'pmem': pmem, 'vmem': vmem}
+    elements = {'cores': cores, 'caches': tuple(caches.values()), 'ptws': tuple(ptws.values()), 'pmem': pmem, 'smem': smem,'vmem': vmem}
     module_info = {
             'repl': util.combine_named(*(c['_replacement_data'] for c in caches.values()), replacement_context.find_all()),
             'pref': util.combine_named(*(c['_prefetcher_data'] for c in caches.values()), prefetcher_context.find_all()),

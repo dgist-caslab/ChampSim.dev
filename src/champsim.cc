@@ -55,8 +55,10 @@ phase_stats do_phase(phase_info phase, environment& env, std::vector<tracereader
   std::vector<bool> phase_complete(std::size(env.cpu_view()), false);
   while (!std::accumulate(std::begin(phase_complete), std::end(phase_complete), true, std::logical_and{})) {
     // Operate
+    std::cout << "num_op: " << operables.size() << std::endl;
     for (champsim::operable& op : operables) {
       try {
+        std::cout << "debug 1" << std::endl;
         op._operate();
       } catch (champsim::deadlock& dl) {
         // env.cpu_view()[dl.which].print_deadlock();
@@ -129,9 +131,9 @@ phase_stats do_phase(phase_info phase, environment& env, std::vector<tracereader
 // simulation entry point
 std::vector<phase_stats> main(environment& env, std::vector<phase_info>& phases, std::vector<tracereader>& traces)
 {
-  for (champsim::operable& op : env.operable_view())
+  for (champsim::operable& op : env.operable_view()){
     op.initialize();
-
+  }
   std::vector<phase_stats> results;
   for (auto phase : phases) {
     auto stats = do_phase(phase, env, traces);

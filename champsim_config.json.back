@@ -3,33 +3,9 @@
     "block_size": 64,
     "page_size": 4096,
     "heartbeat_frequency": 10000000,
-    "num_cores": 2,
+    "num_cores": 4,
 
     "ooo_cpu": [
-        {
-            "frequency": 4000,
-            "ifetch_buffer_size":64,
-            "decode_buffer_size":32,
-            "dispatch_buffer_size":32,
-            "rob_size": 352,
-            "lq_size": 128,
-            "sq_size": 72,
-            "fetch_width": 6,
-            "decode_width": 6,
-            "dispatch_width": 6,
-            "execute_width": 4,
-            "lq_width": 2,
-            "sq_width": 2,
-            "retire_width": 5,
-            "mispredict_penalty": 1,
-            "scheduler_size": 128,
-            "decode_latency": 1,
-            "dispatch_latency": 1,
-            "schedule_latency": 0,
-            "execute_latency": 0,
-            "branch_predictor": "bimodal",
-            "btb": "basic_btb"
-        },
         {
             "frequency": 4000,
             "ifetch_buffer_size":64,
@@ -80,7 +56,7 @@
 
     "L1D": {
         "sets": 64,
-        "ways": 12,
+        "ways": 8,
         "rq_size": 64,
         "wq_size": 64,
         "pq_size": 8,
@@ -96,7 +72,7 @@
 
     "L2C": {
         "sets": 1024,
-        "ways": 8,
+        "ways": 16,
         "rq_size": 32,
         "wq_size": 32,
         "pq_size": 16,
@@ -112,7 +88,7 @@
 
     "ITLB": {
         "sets": 16,
-        "ways": 4,
+        "ways": 8,
         "rq_size": 16,
         "wq_size": 16,
         "pq_size": 0,
@@ -166,8 +142,8 @@
 
     "LLC": {
         "frequency": 4000,
-        "sets": 2048,
-        "ways": 16,
+        "sets": 16384,
+        "ways": 11,
         "rq_size": 32,
         "wq_size": 32,
         "pq_size": 32,
@@ -186,8 +162,8 @@
         "frequency": 3200,
         "channels": 1,
         "ranks": 1,
-        "banks": 16,
-        "rows": 32768,
+        "banks": 8,
+        "rows": 65536,
         "columns": 128,
         "channel_width": 8,
         "wq_size": 64,
@@ -199,11 +175,11 @@
     },
 
     "slow_memory": {
-        "frequency": 3200,
+        "frequency": 2133,
         "channels": 1,
-        "ranks": 4,
-        "banks": 16,
-        "rows": 32768,
+        "ranks": 1,
+        "banks": 8,
+        "rows": 65536,
         "columns": 128,
         "channel_width": 8,
         "wq_size": 64,
@@ -213,7 +189,6 @@
         "tCAS": 12.5,
         "turn_around_time": 7.5
     },
-
 
     "virtual_memory": {
         "pte_page_size": 4096,

@@ -170,12 +170,21 @@ void MEMORY_CONTROLLER::operate()
 void MEMORY_CONTROLLER::initialize()
 {
   long long int dram_size = DRAM_CHANNELS * DRAM_RANKS * DRAM_BANKS * DRAM_ROWS * DRAM_COLUMNS * BLOCK_SIZE / 1024 / 1024; // in MiB
+  long long int smem_size = SLOW_MEM_CHANNELS * SLOW_MEM_RANKS * SLOW_MEM_BANKS * SLOW_MEM_ROWS * SLOW_MEM_COLUMNS * BLOCK_SIZE / 1024 / 1024; // in MiB
   std::cout << "Off-chip DRAM Size: ";
   if (dram_size > 1024)
     std::cout << dram_size / 1024 << " GiB";
   else
     std::cout << dram_size << " MiB";
   std::cout << " Channels: " << DRAM_CHANNELS << " Width: " << 8 * DRAM_CHANNEL_WIDTH << "-bit Data Rate: " << DRAM_IO_FREQ << " MT/s" << std::endl;
+  std::cout << "Off-chip SLOW_MEM Size: ";
+  if (smem_size > 1024)
+    std::cout << smem_size / 1024 << " GiB";
+  else
+    std::cout << smem_size << " MiB";
+  std::cout << " Channels: " << SLOW_MEM_CHANNELS << " Width: " << 8 * SLOW_MEM_CHANNEL_WIDTH << "-bit Data Rate: " << SLOW_MEM_IO_FREQ << " MT/s" << std::endl;
+
+
 }
 
 void MEMORY_CONTROLLER::begin_phase()
