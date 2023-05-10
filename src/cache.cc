@@ -164,7 +164,17 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
   auto metadata_thru = handle_pkt.pf_metadata;
   if (should_activate_prefetcher(handle_pkt)) {
     uint64_t pf_base_addr = (virtual_prefetch ? handle_pkt.v_address : handle_pkt.address) & ~champsim::bitmask(match_offset_bits ? 0 : OFFSET_BITS);
-    metadata_thru = impl_prefetcher_cache_operate(pf_base_addr, handle_pkt.ip, hit, handle_pkt.type, metadata_thru);
+    if(this->NAME == "LLC"){
+      if(roi_stats.pf_issued > 0 && roi_stats.pf_useful > 0){
+        uint32_t accuracy = (this->roi_stats.pf_useful * 100) / this->roi_stats.pf_issued; 
+        std::cout << roi_stats.pf_useful << " " << roi_stats.pf_issued << " " << accuracy << std::endl;
+        metadata_thru = impl_prefetcher_cache_operate(pf_base_addr, handle_pkt.ip, hit, handle_pkt.type, accuracy);
+      }else{
+        metadata_thru = impl_prefetcher_cache_operate(pf_base_addr, handle_pkt.ip, hit, handle_pkt.type, metadata_thru);
+      }
+    }else{
+      metadata_thru = impl_prefetcher_cache_operate(pf_base_addr, handle_pkt.ip, hit, handle_pkt.type, metadata_thru);
+    }
   }
 
   if (hit) {
