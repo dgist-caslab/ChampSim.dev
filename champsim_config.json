@@ -3,7 +3,7 @@
     "block_size": 64,
     "page_size": 4096,
     "heartbeat_frequency": 10000000,
-    "num_cores": 2,
+    "num_cores": 4,
 
     "ooo_cpu": [
         {
@@ -199,7 +199,7 @@
     },
 
     "slow_memory": {
-        "frequency": 3200,
+        "frequency": 2133,
         "channels": 1,
         "ranks": 4,
         "banks": 16,

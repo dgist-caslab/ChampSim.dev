@@ -6,7 +6,6 @@
  * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
- *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +22,7 @@
 #include "champsim_constants.h"
 #include "instruction.h"
 #include "util.h"
+
 
 using namespace std::literals::string_view_literals;
 constexpr std::array<std::string_view, NUM_TYPES> access_type_names{"LOAD"sv, "RFO"sv, "PREFETCH"sv, "WRITE"sv, "TRANSLATION"};
@@ -86,8 +86,20 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
       writeback_packet.type = WRITE;
       writeback_packet.pf_metadata = way->pf_metadata;
       writeback_packet.response_requested = false;
+      // success = lower_level->add_wq(writeback_packet);
 
-      success = lower_level->add_wq(writeback_packet);
+      if(this->NAME == "LLC"){
+        // std::cout << this->NAME << " " << SLOW_MEM_START << std::endl;
+        if(writeback_packet.address > (uint64_t)4294967296){
+          // std::cout << "[SLOW]cpu: " << writeback_packet.cpu << "\taddr: " << writeback_packet.address << std::endl;
+          success = lower_level_slow->add_wq(writeback_packet);
+        }else{
+          // std::cout << "[FAST]cpu: " << writeback_packet.cpu << "\taddr: " << writeback_packet.address << std::endl;
+          success = lower_level->add_wq(writeback_packet);
+        }
+      }else{
+        success = lower_level->add_wq(writeback_packet);
+      }
     }
 
     if (success) {
@@ -246,10 +258,24 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
     fwd_pkt.response_requested = (!handle_pkt.prefetch_from_this || !handle_pkt.skip_fill);
 
     bool success;
-    if (prefetch_as_load || handle_pkt.type != PREFETCH)
-      success = lower_level->add_rq(fwd_pkt);
-    else
-      success = lower_level->add_pq(fwd_pkt);
+    if(this->NAME == "LLC"){
+      if(fwd_pkt.address > (uint64_t)4294967296){
+        if (prefetch_as_load || handle_pkt.type != PREFETCH)
+          success = lower_level_slow->add_rq(fwd_pkt);
+        else
+          success = lower_level_slow->add_pq(fwd_pkt);
+      }else{
+        if (prefetch_as_load || handle_pkt.type != PREFETCH)
+          success = lower_level->add_rq(fwd_pkt);
+        else
+          success = lower_level->add_pq(fwd_pkt);
+      }
+    }else{
+      if (prefetch_as_load || handle_pkt.type != PREFETCH)
+        success = lower_level->add_rq(fwd_pkt);
+      else
+        success = lower_level->add_pq(fwd_pkt);
+    }
 
     if (!success)
       return false;
@@ -297,8 +323,17 @@ void CACHE::operate()
     ul->check_collision();
 
   // Finish returns
-  std::for_each(std::cbegin(lower_level->returned), std::cend(lower_level->returned), [this](const auto& pkt) { this->finish_packet(pkt); });
+  // std::cout << "DEBUG2" << std::endl;
+  // std::cout << "DEBUG2-detail, " << std::endl;
+  // std::cout << "fast returned size" << lower_level->returned.size() << std::endl;
+  std::for_each(std::cbegin(lower_level->returned), std::cend(lower_level->returned), [this](const auto& pkt) { this->finish_packet(pkt, false); });
   lower_level->returned.clear();
+  if(this->NAME == "LLC"){
+    // std::cout << "slow returned size" << lower_level_slow->returned.size() << std::endl;
+    std::for_each(std::cbegin(lower_level_slow->returned), std::cend(lower_level_slow->returned), [this](const auto& pkt) { this->finish_packet(pkt, true); });
+    lower_level_slow->returned.clear();
+    // std::cout << "DEBUG3" << std::endl;
+  }
 
   // Finish translations
   if (lower_translate != nullptr) {
@@ -419,7 +454,7 @@ int CACHE::prefetch_line(uint64_t, uint64_t, uint64_t pf_addr, bool fill_this_le
   return prefetch_line(pf_addr, fill_this_level, prefetch_metadata);
 }
 
-void CACHE::finish_packet(const response_type& packet)
+void CACHE::finish_packet(const response_type& packet, bool isSlow)
 {
   // check MSHR information
   auto mshr_entry = std::find_if(std::begin(MSHR), std::end(MSHR),
@@ -446,7 +481,11 @@ void CACHE::finish_packet(const response_type& packet)
     std::cout << " full_v_addr: " << mshr_entry->v_address;
     std::cout << " data: " << mshr_entry->data << std::dec;
     std::cout << " type: " << access_type_names.at(mshr_entry->type);
-    std::cout << " to_finish: " << std::size(lower_level->returned);
+    if(isSlow){
+      std::cout << " to_finish: " << std::size(lower_level_slow->returned);
+    }else{
+      std::cout << " to_finish: " << std::size(lower_level->returned);
+    }
     std::cout << " event: " << mshr_entry->event_cycle << " current: " << current_cycle << std::endl;
   }
 

@@ -29,7 +29,9 @@
 #include "channel.h"
 #include "module_impl.h"
 #include "operable.h"
+#include "vmem.h"
 #include <type_traits>
+
 
 struct cache_stats {
   std::string name;
@@ -111,7 +113,7 @@ class CACHE : public champsim::operable
   bool handle_fill(const mshr_type& fill_mshr);
   bool handle_miss(const tag_lookup_type& handle_pkt);
   bool handle_write(const tag_lookup_type& handle_pkt);
-  void finish_packet(const response_type& packet);
+  void finish_packet(const response_type& packet, bool isSlow);
   void finish_translation(const response_type& packet);
 
   void issue_translation();
@@ -146,8 +148,8 @@ class CACHE : public champsim::operable
 
 public:
   std::vector<channel_type*> upper_levels;
-  channel_type* lower_level;
-  channel_type* lower_level_slow;
+  channel_type* lower_level; // if current cache is llc, this will DRAM
+  channel_type* lower_level_slow; // if current chache is llc, this will SLOW_MEM
   channel_type* lower_translate;
 
   uint32_t cpu = 0;
@@ -435,7 +437,7 @@ public:
 
   template <unsigned long long P_FLAG, unsigned long long R_FLAG>
   explicit CACHE(Builder<P_FLAG, R_FLAG> b)
-      : champsim::operable(b.m_freq_scale), upper_levels(std::move(b.m_uls)), lower_level(b.m_ll), lower_translate(b.m_lt), NAME(b.m_name), NUM_SET(b.m_sets),
+      : champsim::operable(b.m_freq_scale), upper_levels(std::move(b.m_uls)), lower_level(b.m_ll), lower_level_slow(b.m_lls), lower_translate(b.m_lt), NAME(b.m_name), NUM_SET(b.m_sets),
         NUM_WAY(b.m_ways), MSHR_SIZE(b.m_mshr_size), PQ_SIZE(b.m_pq_size), HIT_LATENCY((b.m_hit_lat > 0) ? b.m_hit_lat : b.m_latency - b.m_fill_lat),
         FILL_LATENCY(b.m_fill_lat), OFFSET_BITS(b.m_offset_bits), MAX_TAG(b.m_max_tag), MAX_FILL(b.m_max_fill), prefetch_as_load(b.m_pref_load),
         match_offset_bits(b.m_wq_full_addr), virtual_prefetch(b.m_va_pref), pref_activate_mask(b.m_pref_act_mask),

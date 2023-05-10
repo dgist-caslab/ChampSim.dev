@@ -7,4 +7,4 @@ TRACE=$3
 
 echo "$CHAMP_HOME/bin/champsim --warmup_instructions $INST_WARMUP --simulation_instructions $INST_SIMUL/ $TRACE_HOME/$TRACE"
 echo "start simulation for $TRACE"
-$CHAMP_HOME/bin/champsim --warmup_instructions $INST_WARMUP --simulation_instructions $INST_SIMUL $TRACE_HOME/$TRACE
+$CHAMP_HOME/bin/champsim --warmup_instructions $INST_WARMUP --simulation_instructions $INST_SIMUL $TRACE_HOME/$TRACE $TRACE_HOME/$TRACE $TRACE_HOME/$TRACE $TRACE_HOME/$TRACE

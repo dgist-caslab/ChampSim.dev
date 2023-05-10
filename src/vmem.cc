@@ -25,17 +25,37 @@
 
 VirtualMemory::VirtualMemory(uint64_t page_table_page_size, std::size_t page_table_levels, uint64_t minor_penalty, MEMORY_CONTROLLER& dram, MEMORY_CONTROLLER& smem)
     : next_ppage(VMEM_RESERVE_CAPACITY), last_ppage(1ull << (LOG2_PAGE_SIZE + champsim::lg2(page_table_page_size / PTE_BYTES) * page_table_levels)),
-      minor_fault_penalty(minor_penalty), pt_levels(page_table_levels), pte_page_size(page_table_page_size)
+      minor_fault_penalty(minor_penalty), pt_levels(page_table_levels), pte_page_size(page_table_page_size), ppage_free_list_fast(((uint64_t)(dram.size() - VMEM_RESERVE_CAPACITY) / PAGE_SIZE), PAGE_SIZE),
+      ppage_free_list_slow(((uint64_t)smem.size_slow() / PAGE_SIZE), PAGE_SIZE)
 {
   assert(page_table_page_size > 1024);
   assert(page_table_page_size == (1ull << champsim::lg2(page_table_page_size)));
   assert(last_ppage > VMEM_RESERVE_CAPACITY);
 
+  //[PHW] restore old fashion
+  // populate fast and slow free list
+  ppage_free_list_fast.front() = VMEM_RESERVE_CAPACITY;
+  std::partial_sum(std::cbegin(ppage_free_list_fast), std::cend(ppage_free_list_fast), std::begin(ppage_free_list_fast));
+  ppage_free_list_slow.front() = ppage_free_list_fast.back() + PAGE_SIZE;
+  std::partial_sum(std::cbegin(ppage_free_list_slow), std::cend(ppage_free_list_slow), std::begin(ppage_free_list_slow));
+  std::cout << "[PHW]debug1: " << ppage_free_list_fast.front() << " ~ " << ppage_free_list_fast.back() << "\tsize(): " << ppage_free_list_fast.size() << std::endl;
+  last_fast_ppage = dram.size();
+  std::cout << last_fast_ppage << std::endl; 
+  std::cout << "[PHW]debug2: " << ppage_free_list_slow.front() << " ~ " << ppage_free_list_slow.back() << "\tsize(): " << ppage_free_list_slow.size() << std::endl;
+  // [PHW] do i need shuffle?
+  // std::shuffle(std::begin(ppage_free_list_fast), std::end(ppage_free_list_fast), std::mt19937_64{200});
+  // std::shuffle(std::begin(ppage_free_list_slow), std::end(ppage_free_list_slow), std::mt19937_64{200});
+
   auto required_bits = champsim::lg2(last_ppage);
+  std::cout << "physical memory(" << dram.size() << " + " << smem.size_slow() << ")\tvirtual memory size(" << last_ppage << ")" << std::endl;
+  std::cout << "fast-mem range: " << VMEM_RESERVE_CAPACITY << " ~ " << last_fast_ppage << " ~ " << last_fast_ppage + smem.size_slow() << std::endl;
   if (required_bits > 64)
     std::cout << "WARNING: virtual memory configuration would require " << required_bits << " bits of addressing." << std::endl;
-  if (required_bits > champsim::lg2(dram.size()))
-    std::cout << "WARNING: physical memory(" << champsim::lg2(dram.size()) << ") size is smaller than virtual memory size(" << required_bits << ")" << std::endl;
+  if (required_bits > champsim::lg2(dram.size() + smem.size_slow())){
+    std::cout << "WARNING: physical memory(" << champsim::lg2(dram.size() + smem.size_slow()) << ") size is smaller than virtual memory size(" << required_bits << ")" << std::endl;
+  }
+  next_ppage = ppage_free_list_fast.front(); // after this, ppage_front() will return ppage_free_list_fast.front()
+  ppage_free_list_fast.pop_front();
 }
 
 uint64_t VirtualMemory::shamt(std::size_t level) const { return LOG2_PAGE_SIZE + champsim::lg2(pte_page_size / PTE_BYTES) * (level - 1); }
@@ -51,7 +71,18 @@ uint64_t VirtualMemory::ppage_front() const
   return next_ppage;
 }
 
-void VirtualMemory::ppage_pop() { next_ppage += PAGE_SIZE; }
+void VirtualMemory::ppage_pop() { 
+  //[PHW] allocate fast mem first
+  if(ppage_free_list_fast.size() > 0){
+    next_ppage += ppage_free_list_fast.front();
+    ppage_free_list_fast.pop_front();
+  }else{
+    next_ppage += ppage_free_list_slow.front();
+    ppage_free_list_slow.pop_front();
+  }
+  // if(ppage_reclaimed_list_fast.size() > 0){
+  // next_ppage += PAGE_SIZE;
+}
 
 std::size_t VirtualMemory::available_ppages() const { return (last_ppage - next_ppage) / PAGE_SIZE; }
 
@@ -62,7 +93,7 @@ std::pair<uint64_t, uint64_t> VirtualMemory::va_to_pa(uint32_t cpu_num, uint64_t
   // this vpage doesn't yet have a ppage mapping
   if (fault)
     ppage_pop();
-
+  //[PHW] TODO add page lru policy 
   return {champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE), fault ? minor_fault_penalty : 0};
 }
 

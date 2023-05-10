@@ -19,6 +19,9 @@
 
 #include <cstdint>
 #include <map>
+#include <deque>
+
+#include <numeric> //[PHW] for partial sum
 
 #include "champsim_constants.h"
 
@@ -44,9 +47,12 @@ private:
   void ppage_pop();
 
 public:
+  uint64_t last_fast_ppage; //[PHW] for fast-memory boundary
   const uint64_t minor_fault_penalty;
   const std::size_t pt_levels;
   const uint64_t pte_page_size; // Size of a PTE page
+  std::deque<uint64_t> ppage_free_list_fast; //[PHW] old fashion 
+  std::deque<uint64_t> ppage_free_list_slow;
 
   // capacity and pg_size are measured in bytes, and capacity must be a multiple of pg_size
   VirtualMemory(uint64_t pg_size, std::size_t page_table_levels, uint64_t minor_penalty, MEMORY_CONTROLLER& dram, MEMORY_CONTROLLER& smem);

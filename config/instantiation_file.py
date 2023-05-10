@@ -136,7 +136,6 @@ def get_instantiation_lines(cores, caches, ptws, pmem, smem, vmem):
             _sulptr=vector_string('&{}_to_{}_queues'.format(ul, smem['name']) for ul in upper_levels[smem['name']]['uppers']),
             **smem)
     yield vmem_fmtstr.format(dram_name=pmem['name'], smem_name=smem['name'], **vmem)
-    print(vmem)
 
     for ptw in ptws:
         yield 'PageTableWalker {name}{{PageTableWalker::Builder{{champsim::defaults::default_ptw}}'.format(**ptw)

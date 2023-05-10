@@ -362,3 +362,4 @@ uint32_t MEMORY_CONTROLLER::dram_get_row(uint64_t address)
 }
 
 std::size_t MEMORY_CONTROLLER::size() const { return DRAM_CHANNELS * DRAM_RANKS * DRAM_BANKS * DRAM_ROWS * DRAM_COLUMNS * BLOCK_SIZE; }
+std::size_t MEMORY_CONTROLLER::size_slow() const { return SLOW_MEM_CHANNELS * SLOW_MEM_RANKS * SLOW_MEM_BANKS * SLOW_MEM_ROWS * SLOW_MEM_COLUMNS * BLOCK_SIZE; }

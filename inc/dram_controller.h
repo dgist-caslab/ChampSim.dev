@@ -111,6 +111,7 @@ public:
   void end_phase(unsigned cpu) override final;
 
   std::size_t size() const;
+  std::size_t size_slow() const;
 
   uint32_t dram_get_channel(uint64_t address);
   uint32_t dram_get_rank(uint64_t address);
