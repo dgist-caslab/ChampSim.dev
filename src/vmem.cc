@@ -36,12 +36,18 @@ VirtualMemory::VirtualMemory(uint64_t page_table_page_size, std::size_t page_tab
   // populate fast and slow free list
   ppage_free_list_fast.front() = VMEM_RESERVE_CAPACITY;
   std::partial_sum(std::cbegin(ppage_free_list_fast), std::cend(ppage_free_list_fast), std::begin(ppage_free_list_fast));
+  // for(const auto& elem : ppage_free_list_fast){
+  //   std::cout << "popul_ppage: " << std::hex << elem << std::endl;
+  // }
   ppage_free_list_slow.front() = ppage_free_list_fast.back() + PAGE_SIZE;
   std::partial_sum(std::cbegin(ppage_free_list_slow), std::cend(ppage_free_list_slow), std::begin(ppage_free_list_slow));
-  std::cout << "[PHW]debug1: " << ppage_free_list_fast.front() << " ~ " << ppage_free_list_fast.back() << "\tsize(): " << ppage_free_list_fast.size() << std::endl;
+  fast_mem_page_num = ppage_free_list_fast.size();
+  std::cout << "[PHW]debug1: " << ppage_free_list_fast.front() << " ~ " << ppage_free_list_fast.back() << "\tsize(): " << fast_mem_page_num << std::endl;
+
   last_fast_ppage = dram.size();
   std::cout << last_fast_ppage << std::endl; 
-  std::cout << "[PHW]debug2: " << ppage_free_list_slow.front() << " ~ " << ppage_free_list_slow.back() << "\tsize(): " << ppage_free_list_slow.size() << std::endl;
+  slow_mem_page_num = ppage_free_list_slow.size();
+  std::cout << "[PHW]debug2: " << ppage_free_list_slow.front() << " ~ " << ppage_free_list_slow.back() << "\tsize(): " << slow_mem_page_num << std::endl;
   // [PHW] do i need shuffle?
   // std::shuffle(std::begin(ppage_free_list_fast), std::end(ppage_free_list_fast), std::mt19937_64{200});
   // std::shuffle(std::begin(ppage_free_list_slow), std::end(ppage_free_list_slow), std::mt19937_64{200});
@@ -68,16 +74,24 @@ uint64_t VirtualMemory::get_offset(uint64_t vaddr, std::size_t level) const
 uint64_t VirtualMemory::ppage_front() const
 {
   assert(available_ppages() > 0);
+  // std::cout << "next_ppage: " << next_ppage << std::endl;
   return next_ppage;
+}
+uint64_t VirtualMemory::ppage_slow_front()
+{
+  uint64_t slow_ppage = ppage_free_list_slow.front();
+  assert(slow_ppage > 0);
+  ppage_free_list_slow.pop_front();
+  return slow_ppage;
 }
 
 void VirtualMemory::ppage_pop() { 
   //[PHW] allocate fast mem first
   if(ppage_free_list_fast.size() > 0){
-    next_ppage += ppage_free_list_fast.front();
+    next_ppage = ppage_free_list_fast.front();
     ppage_free_list_fast.pop_front();
   }else{
-    next_ppage += ppage_free_list_slow.front();
+    next_ppage = ppage_free_list_slow.front();
     ppage_free_list_slow.pop_front();
   }
   // if(ppage_reclaimed_list_fast.size() > 0){
@@ -91,9 +105,12 @@ std::pair<uint64_t, uint64_t> VirtualMemory::va_to_pa(uint32_t cpu_num, uint64_t
   auto [ppage, fault] = vpage_to_ppage_map.insert({{cpu_num, vaddr >> LOG2_PAGE_SIZE}, ppage_front()});
 
   // this vpage doesn't yet have a ppage mapping
-  if (fault)
+  if (fault){
+    // std::cout << "[new]cpu: " << cpu_num << "\tva: " << std::hex << vaddr << "\tva_log: " << std::hex << (vaddr >> LOG2_PAGE_SIZE) << "\tpa: " << std::hex << ppage->second << std::endl;
     ppage_pop();
-  //[PHW] TODO add page lru policy 
+  }else{
+    // std::cout << "[already]cpu: " << cpu_num << "\tva: " << std::hex << vaddr << "\tva_log: " << std::hex << (vaddr >> LOG2_PAGE_SIZE) << "\tpa: " << std::hex << ppage->second << std::endl;
+  }
   return {champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE), fault ? minor_fault_penalty : 0};
 }
 
@@ -109,11 +126,13 @@ std::pair<uint64_t, uint64_t> VirtualMemory::get_pte_pa(uint32_t cpu_num, uint64
 
   // this PTE doesn't yet have a mapping
   if (fault) {
-    next_pte_page += pte_page_size;
-    if (!(next_pte_page % PAGE_SIZE)) {
-      next_pte_page = ppage_front();
-      ppage_pop();
-    }
+    next_pte_page = ppage_front();
+    ppage_pop();
+    // next_pte_page += pte_page_size;
+    // if (!(next_pte_page % PAGE_SIZE)) { //[PHW] pte page size always 4096, so it is not required
+    //   next_pte_page = ppage_front();
+    //   ppage_pop();
+    // }
   }
 
   auto offset = get_offset(vaddr, level);

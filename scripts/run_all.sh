@@ -1,8 +1,8 @@
 #!/bin/bash
 LOG_HOME=../logs
 TRACE_LIST=./trace.list
-INST_WARMUP=200000000
-INST_SIMUL=500000000
+INST_WARMUP=20000000
+INST_SIMUL=100000000
 
 while read -r file; do
     echo "simulation $file start"

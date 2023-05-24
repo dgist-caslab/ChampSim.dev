@@ -167,7 +167,7 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
     if(this->NAME == "LLC"){
       if(roi_stats.pf_issued > 0 && roi_stats.pf_useful > 0){
         uint32_t accuracy = (this->roi_stats.pf_useful * 100) / this->roi_stats.pf_issued; 
-        std::cout << roi_stats.pf_useful << " " << roi_stats.pf_issued << " " << accuracy << std::endl;
+        // std::cout << roi_stats.pf_useful << " " << roi_stats.pf_issued << " " << accuracy << std::endl;
         metadata_thru = impl_prefetcher_cache_operate(pf_base_addr, handle_pkt.ip, hit, handle_pkt.type, accuracy);
       }else{
         metadata_thru = impl_prefetcher_cache_operate(pf_base_addr, handle_pkt.ip, hit, handle_pkt.type, metadata_thru);
@@ -192,6 +192,7 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 
     // update prefetch stats and reset prefetch bit
     if (way->prefetch && !handle_pkt.prefetch_from_this) {
+      //[PHW] TODO : add this page's pfn to solution table
       ++sim_stats.pf_useful;
       way->prefetch = false;
     }
@@ -269,7 +270,7 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
 
     bool success;
     if(this->NAME == "LLC"){
-      if(fwd_pkt.address > (uint64_t)4294967296){
+      if(fwd_pkt.address > (uint64_t)4294967296){ //[PHW] hardcoded
         if (prefetch_as_load || handle_pkt.type != PREFETCH)
           success = lower_level_slow->add_rq(fwd_pkt);
         else

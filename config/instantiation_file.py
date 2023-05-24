@@ -120,6 +120,8 @@ def get_instantiation_lines(cores, caches, ptws, pmem, smem, vmem):
     yield '#include "environment.h"'
     yield '#include "defaults.hpp"'
     yield '#include "vmem.h"'
+    # [PHW] add page mgmt
+    yield '#include "page_lru.h"'
     yield 'namespace champsim::configured {'
     yield 'struct generated_environment final : public champsim::environment {'
     yield ''
@@ -160,6 +162,7 @@ def get_instantiation_lines(cores, caches, ptws, pmem, smem, vmem):
 
         yield '.upper_levels({{{}}})'.format(vector_string('&{}_to_{}_queues'.format(ul, ptw['name']) for ul in upper_levels[ptw['name']]['uppers']))
         yield '.lower_level({})'.format('&{}_to_{}_queues'.format(ptw['name'], ptw['lower_level']))
+        yield '.set_page_mgmt(&pmgmt)'
 
         yield '};'
         yield ''
@@ -259,6 +262,9 @@ def get_instantiation_lines(cores, caches, ptws, pmem, smem, vmem):
     yield '  };'
     yield '}'
     yield ''
+
+    # [PHW] add page mgmt
+    yield 'PAGE_MGMT pmgmt{&DRAM, &SLOW_MEM, &vmem, 1, 2};'
 
     yield '};'
     yield '}'

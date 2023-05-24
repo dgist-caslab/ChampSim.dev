@@ -24,6 +24,7 @@
 #include "channel.h"
 #include "operable.h"
 #include "util.h"
+#include "page_lru.h" //[PHW] for page mgmt
 
 class VirtualMemory;
 class PageTableWalker : public champsim::operable
@@ -85,6 +86,7 @@ public:
   VirtualMemory* vmem;
 
   const uint64_t CR3_addr;
+  PAGE_MGMT* pmgmt; //[PHW] for page lru
 
   class Builder
   {
@@ -99,6 +101,7 @@ public:
     std::vector<PageTableWalker::channel_type*> m_uls{};
     PageTableWalker::channel_type* m_ll{};
     VirtualMemory* m_vmem{};
+    PAGE_MGMT* m_pmgmt{}; //[PHW] for page lru
 
     friend class PageTableWalker;
 
@@ -158,6 +161,12 @@ public:
       m_vmem = vmem_;
       return *this;
     }
+    Builder& set_page_mgmt(PAGE_MGMT* pmgmt_)
+    {
+      m_pmgmt = pmgmt_;
+      return *this;
+    }
+
   };
 
   explicit PageTableWalker(Builder builder);

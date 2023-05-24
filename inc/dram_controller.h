@@ -118,6 +118,8 @@ public:
   uint32_t dram_get_bank(uint64_t address);
   uint32_t dram_get_row(uint64_t address);
   uint32_t dram_get_column(uint64_t address);
+
+  bool migrate;
 };
 
 #endif

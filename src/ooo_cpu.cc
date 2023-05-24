@@ -24,7 +24,7 @@
 #include "champsim.h"
 #include "instruction.h"
 
-constexpr uint64_t DEADLOCK_CYCLE = 1000000;
+constexpr uint64_t DEADLOCK_CYCLE = 999999999999;
 
 std::tuple<uint64_t, uint64_t, uint64_t> elapsed_time();
 

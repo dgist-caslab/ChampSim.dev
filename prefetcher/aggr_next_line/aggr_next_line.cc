@@ -26,7 +26,8 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
       if(pf_cnt >= aggresiveness){
         break;
       }
-      int ret = prefetch_line(ip, addr, pf_addr, true, 0);
+      // int ret = prefetch_line(ip, addr, pf_addr, true, 0);
+      int ret = prefetch_line(pf_addr, true, 0);
       if(ret == 0){
         break;
       }
@@ -36,8 +37,8 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
       break;
     }
   }
-  std::cout << "[PHW]llc_pf_accuracy: " << metadata_in << "\taggresiveness: " << aggresiveness << "\tprefetched: " << pf_cnt << "\taddr:0x" << addr << std::endl;
-  return metadata_in;
+  // std::cout << "[PHW]llc_pf_accuracy: " << metadata_in << "\taggresiveness: " << aggresiveness << "\tprefetched: " << pf_cnt << "\taddr:0x" << addr << std::endl;
+  return 0;
 }
 
 uint32_t CACHE::prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t evicted_addr, uint32_t metadata_in)

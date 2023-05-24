@@ -35,7 +35,7 @@ inline constexpr std::size_t PTE_BYTES = 8;
 class VirtualMemory
 {
 private:
-  std::map<std::pair<uint32_t, uint64_t>, uint64_t> vpage_to_ppage_map;
+  // std::map<std::pair<uint32_t, uint64_t>, uint64_t> vpage_to_ppage_map;
   std::map<std::tuple<uint32_t, uint64_t, uint32_t>, uint64_t> page_table;
 
   uint64_t next_pte_page = 0;
@@ -43,10 +43,20 @@ private:
   uint64_t next_ppage;
   uint64_t last_ppage;
 
-  uint64_t ppage_front() const;
-  void ppage_pop();
+  // uint64_t ppage_front() const;
+  // void ppage_pop();
 
 public:
+  //[PHW] move to public for control in page_lru
+  uint64_t ppage_front() const;
+  uint64_t ppage_slow_front();
+  std::map<std::pair<uint32_t, uint64_t>, uint64_t> vpage_to_ppage_map;
+
+  void ppage_pop();
+
+
+  uint64_t fast_mem_page_num;
+  uint64_t slow_mem_page_num;
   uint64_t last_fast_ppage; //[PHW] for fast-memory boundary
   const uint64_t minor_fault_penalty;
   const std::size_t pt_levels;

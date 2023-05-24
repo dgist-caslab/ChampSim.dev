@@ -26,7 +26,7 @@
 
 PageTableWalker::PageTableWalker(Builder b)
     : champsim::operable(b.m_freq_scale), upper_levels(b.m_uls), lower_level(b.m_ll), NAME(b.m_name), MSHR_SIZE(b.m_mshr_size), MAX_READ(b.m_max_tag_check),
-      MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first)
+      MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first), pmgmt(b.m_pmgmt)
 {
   std::vector<std::array<uint32_t, 3>> local_pscl_dims{};
   std::remove_copy_if(std::begin(b.m_pscl), std::end(b.m_pscl), std::back_inserter(local_pscl_dims), [](auto x) { return std::get<0>(x) == 0; });
@@ -159,6 +159,7 @@ void PageTableWalker::operate()
 
 void PageTableWalker::finish_packet(const response_type& packet)
 {
+
   auto last_finished =
       std::partition(std::begin(MSHR), std::end(MSHR), [addr = packet.address](auto x) { return (x.address >> LOG2_BLOCK_SIZE) == (addr >> LOG2_BLOCK_SIZE); });
   auto inserted_finished = finished.insert(std::cend(finished), std::begin(MSHR), last_finished);
@@ -170,6 +171,8 @@ void PageTableWalker::finish_packet(const response_type& packet)
     std::tie(mshr_entry.data, penalty) = this->vmem->get_pte_pa(mshr_entry.cpu, mshr_entry.v_address, mshr_entry.translation_level);
     mshr_entry.event_cycle = this->current_cycle + (this->warmup ? 0 : penalty + HIT_LATENCY);
 
+
+      // std::cout << "[fin.packet" << mshr_entry.translation_level << "]addr: " << std::hex << mshr_entry.address << "\tv_addr: " << std::hex << mshr_entry.v_address << "\tdata: " << std::hex << mshr_entry.data << std::endl;
     if constexpr (champsim::debug_print) {
       std::cout << "[" << this->NAME << "_MSHR] finish_packet";
       std::cout << " address: " << std::hex << mshr_entry.address;
@@ -177,13 +180,18 @@ void PageTableWalker::finish_packet(const response_type& packet)
       std::cout << " data: " << mshr_entry.data << std::dec;
       std::cout << " translation_level: " << +mshr_entry.translation_level << std::endl;
     }
+
   });
 
   std::for_each(last_unfinished, std::end(finished), [this](auto& mshr_entry) {
     uint64_t penalty;
     std::tie(mshr_entry.data, penalty) = this->vmem->va_to_pa(mshr_entry.cpu, mshr_entry.v_address);
+    // std::cout << "[va_to_pa]result: " << std::hex << mshr_entry.data << std::endl;
     mshr_entry.event_cycle = this->current_cycle + (this->warmup ? 0 : penalty + HIT_LATENCY);
 
+    // [PHW] setup ref bit for TLB missed page
+    // std::cout << "[va_to_pa]addr: " << std::hex << mshr_entry.address << "\tv_addr: " << std::hex << mshr_entry.v_address << "\tdata: " << std::hex << mshr_entry.data << std::endl;
+    pmgmt->page_reference(mshr_entry.data);
     if constexpr (champsim::debug_print) {
       std::cout << "[" << this->NAME << "_MSHR] complete_packet";
       std::cout << " address: " << std::hex << mshr_entry.address;

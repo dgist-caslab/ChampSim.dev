@@ -37,10 +37,12 @@ MEMORY_CONTROLLER::MEMORY_CONTROLLER(double freq_scale, int io_freq, double t_rp
       tCAS(cycles(t_cas / 1000, io_freq)), DRAM_DBUS_TURN_AROUND_TIME(cycles(turnaround / 1000, io_freq)),
       DRAM_DBUS_RETURN_TIME(cycles(std::ceil(BLOCK_SIZE) / std::ceil(DRAM_CHANNEL_WIDTH), 1))
 {
+  migrate = false;
 }
 
 void MEMORY_CONTROLLER::operate()
 {
+  migrate = false;
   initiate_requests();
 
   for (auto& channel : channels) {

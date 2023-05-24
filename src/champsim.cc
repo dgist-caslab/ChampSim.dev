@@ -91,6 +91,7 @@ phase_stats do_phase(phase_info phase, environment& env, std::vector<tracereader
         std::cout << phase_name << " finished CPU " << cpu.cpu;
         std::cout << " instructions: " << cpu.sim_instr() << " cycles: " << cpu.sim_cycle()
                   << " cumulative IPC: " << std::ceil(cpu.sim_instr()) / std::ceil(cpu.sim_cycle());
+
         std::cout << " (Simulation time: " << elapsed_hour << " hr " << elapsed_minute << " min " << elapsed_second << " sec) " << std::endl;
       }
     }
